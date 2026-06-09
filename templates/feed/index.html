@@ -1,0 +1,122 @@
+{% extends 'base.html' %}
+{% load static social_tags %}
+{% block title %}Home Timeline — Mastodon{% endblock %}
+
+{% block content %}
+<div class="feed-layout">
+
+  <!-- ══ Center: Timeline ════════════════ -->
+  <section class="feed-center">
+
+    <!-- Sticky Header -->
+    <div class="feed-header">
+      <h2>Home Timeline</h2>
+    </div>
+
+    <!-- Create Post Box -->
+    <div class="create-post-card" id="createPostSection">
+      <div class="cp-header">
+        <img src="{{ user.get_avatar_url }}" alt="{{ user.username }}" class="avatar-md"/>
+        <textarea id="postContent" class="post-textarea" placeholder="What is happening?!" rows="3"></textarea>
+      </div>
+      <div class="cp-footer">
+        <label class="cp-media-btn" for="postImageInput" title="Add photo">
+          <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+          Photo
+          <input type="file" id="postImageInput" accept="image/*" style="display:none"/>
+        </label>
+        <div class="cp-media-preview" id="mediaPreview" style="display:none">
+          <img id="previewImg" src="" alt="preview"/>
+          <button onclick="clearMedia()" class="clear-media">✕</button>
+        </div>
+        <button class="btn-primary" onclick="submitPost()">Post</button>
+      </div>
+    </div>
+
+    <!-- Posts Feed -->
+    <div id="posts-container">
+      {% for post in posts %}
+        {% include 'partials/post_card.html' with post=post %}
+      {% empty %}
+        <div class="empty-feed">
+          <div class="empty-icon">🌱</div>
+          <h3>Your timeline is empty</h3>
+          <p>Follow some people or <a href="{% url 'explore' %}">explore content</a> to get started.</p>
+        </div>
+      {% endfor %}
+    </div>
+
+  </section>
+
+  <!-- ══ Right Panel ═════════════════════ -->
+  <aside class="right-panel">
+
+    <!-- Who to Follow -->
+    <div class="rp-section">
+      <div class="rp-title">Who to Follow</div>
+      {% for su in suggested_users %}
+      <div class="suggested-user" id="su-{{ su.username }}">
+        <a href="{% url 'profile' username=su.username %}" class="su-info">
+          <img src="{{ su.get_avatar_url }}" alt="{{ su.username }}" class="avatar-sm"/>
+          <div>
+            <span class="su-name">{{ su.get_full_name|default:su.username }}</span>
+            <span class="su-handle">@{{ su.username }}</span>
+          </div>
+        </a>
+        <button class="btn-follow-sm" onclick="toggleFollow('{{ su.username }}', this)">Follow</button>
+      </div>
+      {% empty %}
+        <p class="rp-empty">No suggestions right now.</p>
+      {% endfor %}
+    </div>
+
+    <!-- Server Announcements -->
+    <div class="announcements-box">
+      <div class="ann-title">Server Announcements</div>
+      <p class="ann-text">Welcome to the community! Please read our guidelines and introduce yourself.</p>
+      <a href="#" class="ann-link">Read more →</a>
+    </div>
+
+    <!-- Your Stats -->
+    <div class="rp-section">
+      <div class="rp-title" style="font-size:15px;padding:14px 20px">Your Stats</div>
+      <div class="stats-grid">
+        <div class="stat-box">
+          <span class="stat-num">{{ user.posts_count }}</span>
+          <span class="stat-label">Posts</span>
+        </div>
+        <div class="stat-box">
+          <span class="stat-num">{{ user.followers_count }}</span>
+          <span class="stat-label">Followers</span>
+        </div>
+        <div class="stat-box">
+          <span class="stat-num">{{ user.following_count }}</span>
+          <span class="stat-label">Following</span>
+        </div>
+      </div>
+    </div>
+
+  </aside>
+</div>
+
+<!-- Comment Modal -->
+<div class="modal-overlay" id="commentModal" style="display:none">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3>Comments</h3>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-comments" id="modalCommentsList"></div>
+    <div class="modal-input-row">
+      <img src="{{ user.get_avatar_url }}" class="avatar-sm" alt=""/>
+      <input type="text" id="modalCommentInput" class="comment-input" placeholder="Write a comment..."/>
+      <button class="btn-primary btn-sm" onclick="submitComment()">Post</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const CSRF_TOKEN = '{{ csrf_token }}';
+const currentPostId = { value: null };
+</script>
+{% endblock %}

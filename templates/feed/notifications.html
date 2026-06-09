@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Notifications — Mastodon{% endblock %}
+
+{% block content %}
+<div style="max-width:680px;border-right:1px solid var(--border);min-height:100vh;background:var(--surface)">
+
+  <div class="notif-list-header">Notifications</div>
+
+  <div class="notif-list">
+    {% for notif in notifications %}
+    <div class="notif-item {% if not notif.is_read %}unread{% endif %}">
+      <div class="notif-dot {% if notif.is_read %}read{% endif %}"></div>
+      <a href="{% url 'profile' username=notif.sender.username %}">
+        <img src="{{ notif.sender.get_avatar_url }}" class="avatar-md" alt="{{ notif.sender.username }}"/>
+      </a>
+      <div class="notif-text">
+        <strong>{{ notif.sender.username }}</strong>
+        {% if notif.notif_type == 'like' %} liked your post
+        {% elif notif.notif_type == 'comment' %} commented on your post
+        {% elif notif.notif_type == 'follow' %} started following you
+        {% endif %}
+        <br/><span style="font-size:12px;color:var(--text-muted)">{{ notif.created_at|timesince }} ago</span>
+      </div>
+      {% if notif.post %}
+      <a href="{% url 'post_detail' post_id=notif.post.id %}" class="notif-post-thumb">View →</a>
+      {% endif %}
+    </div>
+    {% empty %}
+    <div class="empty-feed">
+      <div class="empty-icon">🔔</div>
+      <h3>No notifications yet</h3>
+      <p>When people like or comment on your posts, you'll see it here.</p>
+    </div>
+    {% endfor %}
+  </div>
+
+</div>
+{% endblock %}

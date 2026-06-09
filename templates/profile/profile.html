@@ -1,0 +1,144 @@
+{% extends 'base.html' %}
+{% load static social_tags %}
+{% block title %}{{ profile_user.username }} — Mastodon{% endblock %}
+
+{% block content %}
+<div style="max-width:700px;border-right:1px solid var(--border);min-height:100vh;background:var(--surface)">
+
+  <!-- Cover -->
+  <div class="profile-cover-wrap">
+    <div class="profile-cover" style="{% if profile_user.cover_photo %}background-image:url('{{ profile_user.cover_photo.url }}');background-size:cover;background-position:center{% endif %}"></div>
+    <div class="profile-avatar-float">
+      <img src="{{ profile_user.get_avatar_url }}" alt="{{ profile_user.username }}" class="avatar-xl"/>
+    </div>
+  </div>
+
+  <!-- Info -->
+  <div class="profile-info-section">
+    <div class="profile-actions">
+      {% if profile_user == user %}
+      <a href="{% url 'edit_profile' %}" class="btn-outline">Edit Profile</a>
+      {% else %}
+      <button class="btn-follow {% if is_following %}following{% endif %}"
+              onclick="toggleFollow('{{ profile_user.username }}', this)">
+        {% if is_following %}Following{% else %}Follow{% endif %}
+      </button>
+      {% endif %}
+    </div>
+
+    <h2 class="profile-name">{{ profile_user.get_full_name|default:profile_user.username }}</h2>
+    <p class="profile-handle">@{{ profile_user.username }}</p>
+    {% if profile_user.bio %}<p class="profile-bio">{{ profile_user.bio }}</p>{% endif %}
+
+    <div class="profile-meta">
+      {% if profile_user.location %}<span>📍 {{ profile_user.location }}</span>{% endif %}
+      {% if profile_user.website %}<span>🔗 <a href="{{ profile_user.website }}" target="_blank">{{ profile_user.website }}</a></span>{% endif %}
+      <span>📅 Joined {{ profile_user.created_at|date:"F Y" }}</span>
+    </div>
+
+    <div class="profile-stats">
+      <div class="pstat">
+        <span class="pstat-num">{{ profile_user.posts_count }}</span>
+        <span class="pstat-label">Posts</span>
+      </div>
+      <div class="pstat toggle-list" onclick="showList('followers')">
+        <span class="pstat-num" id="follower-count">{{ profile_user.followers_count }}</span>
+        <span class="pstat-label">Followers</span>
+      </div>
+      <div class="pstat toggle-list" onclick="showList('following')">
+        <span class="pstat-num">{{ profile_user.following_count }}</span>
+        <span class="pstat-label">Following</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="profile-tabs">
+    <button class="tab-btn active" onclick="showTab('posts',this)">Posts</button>
+    <button class="tab-btn" onclick="showTab('grid',this)">Grid</button>
+  </div>
+
+  <div id="tab-posts" class="tab-content active">
+    {% for post in posts %}
+      {% include 'partials/post_card.html' %}
+    {% empty %}
+    <div class="empty-feed">
+      <div class="empty-icon">📭</div>
+      <h3>No posts yet</h3>
+      {% if profile_user == user %}<p>Share your first post!</p>{% endif %}
+    </div>
+    {% endfor %}
+  </div>
+
+  <div id="tab-grid" class="tab-content">
+    <div class="posts-grid">
+      {% for post in posts %}
+        {% if post.image %}
+        <a href="{% url 'post_detail' post_id=post.id %}" class="grid-item">
+          <img src="{{ post.image.url }}" alt=""/>
+          <div class="grid-overlay">
+            <span>❤ {{ post.likes_count }}</span>
+            <span>💬 {{ post.comments_count }}</span>
+          </div>
+        </a>
+        {% endif %}
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<!-- Followers / Following Modal -->
+<div class="modal-overlay" id="usersModal" style="display:none">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3 id="usersModalTitle">Followers</h3>
+      <button class="modal-close" onclick="document.getElementById('usersModal').style.display='none'">✕</button>
+    </div>
+    <div class="users-list" id="followersPanel">
+      {% for f in followers %}
+      <a href="{% url 'profile' username=f.follower.username %}" class="users-list-item">
+        <img src="{{ f.follower.get_avatar_url }}" class="avatar-sm" alt=""/>
+        <div><span class="su-name">{{ f.follower.get_full_name|default:f.follower.username }}</span><br/><span class="su-handle">@{{ f.follower.username }}</span></div>
+      </a>
+      {% empty %}<p class="rp-empty">No followers yet.</p>{% endfor %}
+    </div>
+    <div class="users-list" id="followingPanel" style="display:none">
+      {% for f in following_list %}
+      <a href="{% url 'profile' username=f.following.username %}" class="users-list-item">
+        <img src="{{ f.following.get_avatar_url }}" class="avatar-sm" alt=""/>
+        <div><span class="su-name">{{ f.following.get_full_name|default:f.following.username }}</span><br/><span class="su-handle">@{{ f.following.username }}</span></div>
+      </a>
+      {% empty %}<p class="rp-empty">Not following anyone yet.</p>{% endfor %}
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="commentModal" style="display:none">
+  <div class="modal-box">
+    <div class="modal-header"><h3>Comments</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div class="modal-comments" id="modalCommentsList"></div>
+    <div class="modal-input-row">
+      <img src="{{ user.get_avatar_url }}" class="avatar-sm" alt=""/>
+      <input type="text" id="modalCommentInput" class="comment-input" placeholder="Write a comment..."/>
+      <button class="btn-primary btn-sm" onclick="submitComment()">Post</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const CSRF_TOKEN = '{{ csrf_token }}';
+const currentPostId = { value: null };
+function showList(type) {
+  document.getElementById('followersPanel').style.display = type==='followers'?'flex':'none';
+  document.getElementById('followingPanel').style.display = type==='following'?'flex':'none';
+  document.getElementById('usersModalTitle').textContent = type==='followers'?'Followers':'Following';
+  document.getElementById('usersModal').style.display = 'flex';
+}
+function showTab(tab, btn) {
+  document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+tab).classList.add('active');
+  btn.classList.add('active');
+}
+</script>
+{% endblock %}

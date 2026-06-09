@@ -1,0 +1,55 @@
+{% load static social_tags %}
+<article class="post-card" id="post-{{ post.id }}" data-post-id="{{ post.id }}">
+
+  <div class="post-header">
+    <a href="{% url 'profile' username=post.author.username %}" class="post-author">
+      <img src="{{ post.author.get_avatar_url }}" alt="{{ post.author.username }}" class="avatar-md"/>
+      <div>
+        <span class="author-name">{{ post.author.get_full_name|default:post.author.username }}</span>
+        <span class="author-handle">@{{ post.author.username }} · {{ post.created_at|timesince }} ago</span>
+      </div>
+    </a>
+    {% if post.author == user %}
+    <div class="post-menu">
+      <button class="post-menu-btn" onclick="toggleMenu({{ post.id }})">···</button>
+      <div class="post-menu-dropdown" id="menu-{{ post.id }}">
+        <button onclick="deletePost({{ post.id }})">🗑 Delete Post</button>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="post-content">
+    <p>{{ post.content }}</p>
+    {% if post.image %}
+    <div class="post-image-wrap">
+      <img src="{{ post.image.url }}" alt="Post image" class="post-image"/>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Action Row — exactly like Mastodon screenshot -->
+  <div class="post-actions">
+    <!-- Comment -->
+    <button class="action-btn comment-btn" onclick="openComments({{ post.id }})">
+      <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+      <span id="comment-count-{{ post.id }}">{{ post.comments_count }}</span>
+    </button>
+    <!-- Repost (share) -->
+    <button class="action-btn repost-btn" onclick="sharePost({{ post.id }})">
+      <svg viewBox="0 0 24 24"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 014-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 01-4 4H3"/></svg>
+    </button>
+    <!-- Like -->
+    <button class="action-btn like-btn {% if post|is_liked:user %}liked{% endif %}"
+            onclick="toggleLike({{ post.id }}, this)"
+            id="like-btn-{{ post.id }}">
+      <svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
+      <span id="like-count-{{ post.id }}">{{ post.likes_count }}</span>
+    </button>
+    <!-- Bookmark -->
+    <button class="action-btn bookmark-btn">
+      <svg viewBox="0 0 24 24"><path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z"/></svg>
+    </button>
+  </div>
+
+</article>

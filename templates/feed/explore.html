@@ -1,0 +1,94 @@
+{% extends 'base.html' %}
+{% load static social_tags %}
+{% block title %}Explore — Mastodon{% endblock %}
+
+{% block content %}
+<div class="feed-layout">
+  <div class="feed-center">
+
+    <div class="feed-header">
+      <h2>Explore</h2>
+    </div>
+
+    <!-- Search Bar -->
+    <div class="explore-search-bar">
+      <form method="get" action="{% url 'explore' %}">
+        <div class="search-input-wrap">
+          <svg class="search-icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" name="q" value="{{ query }}" placeholder="Search posts and people..." class="search-input" autofocus/>
+          <button type="submit" class="btn-primary btn-sm">Search</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- People Results -->
+    {% if users %}
+    <div class="search-people">
+      <h3 class="section-title" style="padding:16px 24px;font-size:16px;border-bottom:1px solid var(--border)">People</h3>
+      <div class="people-grid" style="padding:16px 24px">
+        {% for su in users %}
+        <div class="person-card">
+          <a href="{% url 'profile' username=su.username %}">
+            <img src="{{ su.get_avatar_url }}" class="avatar-lg" alt="{{ su.username }}"/>
+            <span class="person-name">{{ su.get_full_name|default:su.username }}</span>
+            <span class="person-handle">@{{ su.username }}</span>
+          </a>
+          <button class="btn-follow-sm" style="margin-top:4px" onclick="toggleFollow('{{ su.username }}', this)">Follow</button>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Post Results -->
+    {% if query %}<div style="padding:16px 24px 8px;font-size:15px;font-weight:600;color:var(--text-muted);border-bottom:1px solid var(--border)">Results for "{{ query }}"</div>{% endif %}
+
+    <div id="posts-container">
+      {% for post in posts %}
+        {% include 'partials/post_card.html' %}
+      {% empty %}
+        <div class="empty-feed">
+          <div class="empty-icon">🔍</div>
+          <h3>{% if query %}No results found{% else %}Nothing here yet{% endif %}</h3>
+          <p>{% if query %}Try different keywords.{% else %}Be the first to post!{% endif %}</p>
+        </div>
+      {% endfor %}
+    </div>
+
+  </div>
+
+  <aside class="right-panel">
+    <div class="rp-section">
+      <div class="rp-title">Who to Follow</div>
+      {% for su in suggested_users|slice:":5" %}
+      <div class="suggested-user">
+        <a href="{% url 'profile' username=su.username %}" class="su-info">
+          <img src="{{ su.get_avatar_url }}" alt="{{ su.username }}" class="avatar-sm"/>
+          <div>
+            <span class="su-name">{{ su.get_full_name|default:su.username }}</span>
+            <span class="su-handle">@{{ su.username }}</span>
+          </div>
+        </a>
+        <button class="btn-follow-sm" onclick="toggleFollow('{{ su.username }}', this)">Follow</button>
+      </div>
+      {% empty %}<p class="rp-empty">No suggestions.</p>
+      {% endfor %}
+    </div>
+  </aside>
+</div>
+
+<div class="modal-overlay" id="commentModal" style="display:none">
+  <div class="modal-box">
+    <div class="modal-header"><h3>Comments</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div class="modal-comments" id="modalCommentsList"></div>
+    <div class="modal-input-row">
+      <img src="{{ user.get_avatar_url }}" class="avatar-sm" alt=""/>
+      <input type="text" id="modalCommentInput" class="comment-input" placeholder="Write a comment..."/>
+      <button class="btn-primary btn-sm" onclick="submitComment()">Post</button>
+    </div>
+  </div>
+</div>
+<script>const CSRF_TOKEN='{{ csrf_token }}';const currentPostId={value:null};</script>
+
+{% block extra_context %}{% endblock %}
+{% endblock %}

@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+{% load static social_tags %}
+{% block title %}Post — Mastodon{% endblock %}
+
+{% block content %}
+<div class="post-detail-layout">
+  <div class="post-detail-center">
+
+    <a href="javascript:history.back()" class="back-btn">
+      <svg viewBox="0 0 24 24" style="width:16px;height:16px"><polyline points="15 18 9 12 15 6"/></svg>
+      Back
+    </a>
+
+    {% include 'partials/post_card.html' with post=post %}
+
+    <div class="comments-section">
+      <div style="padding:16px 24px;font-size:16px;font-weight:700;border-bottom:1px solid var(--border)">
+        Comments ({{ post.comments_count }})
+      </div>
+
+      <form method="post" action="{% url 'add_comment' post_id=post.id %}" class="comment-form-inline">
+        {% csrf_token %}
+        <img src="{{ user.get_avatar_url }}" class="avatar-sm" alt=""/>
+        <input type="text" name="content" class="comment-input" placeholder="Write a comment..." maxlength="300" required/>
+        <button type="submit" class="btn-primary btn-sm">Post</button>
+      </form>
+
+      <div class="comments-list">
+        {% for comment in comments %}
+        <div class="comment-item" id="comment-{{ comment.id }}">
+          <a href="{% url 'profile' username=comment.author.username %}">
+            <img src="{{ comment.author.get_avatar_url }}" class="avatar-sm" alt=""/>
+          </a>
+          <div class="comment-body">
+            <div class="comment-header">
+              <a href="{% url 'profile' username=comment.author.username %}" class="comment-author">{{ comment.author.username }}</a>
+              <span class="comment-time">{{ comment.created_at|timesince }} ago</span>
+              {% if comment.author == user %}<button class="comment-delete" onclick="deleteComment({{ comment.id }})">✕</button>{% endif %}
+            </div>
+            <p class="comment-text">{{ comment.content }}</p>
+          </div>
+        </div>
+        {% empty %}
+        <p style="padding:24px;color:var(--text-muted);font-size:14px">No comments yet. Be the first!</p>
+        {% endfor %}
+      </div>
+    </div>
+
+  </div>
+</div>
+<script>const CSRF_TOKEN='{{ csrf_token }}';</script>
+{% endblock %}
